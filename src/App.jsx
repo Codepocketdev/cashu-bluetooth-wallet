@@ -9,6 +9,170 @@ const DEFAULT_MINTS = [
 
 const WALLET_NAME = 'Satoshi Pay'
 
+// Splash Screen Component
+function SplashScreen({ onComplete }) {
+  const [progress, setProgress] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(timer)
+          setTimeout(onComplete, 300)
+          return 100
+        }
+        return prev + 5
+      })
+    }, 50)
+
+    return () => clearInterval(timer)
+  }, [onComplete])
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'linear-gradient(135deg, #1a1a1a 0%, #2d1810 100%)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10000
+    }}>
+      <img 
+        src="/cashu-bluetooth-wallet/icon-192.png" 
+        alt="Logo" 
+        style={{ 
+          width: '120px', 
+          height: '120px', 
+          marginBottom: '1em',
+          borderRadius: '30px',
+          animation: 'pulse 2s ease-in-out infinite'
+        }} 
+      />
+      <h1 style={{
+        fontSize: '2em',
+        fontWeight: 'bold',
+        background: 'linear-gradient(90deg, #FFD700, #FF8C00)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        marginBottom: '0.5em'
+      }}>
+        {WALLET_NAME}
+      </h1>
+      <p style={{
+        fontSize: '0.9em',
+        opacity: 0.7,
+        marginBottom: '2em'
+      }}>
+        Offline Bitcoin Payments
+      </p>
+      
+      <div style={{
+        width: '200px',
+        height: '4px',
+        background: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '2px',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          width: `${progress}%`,
+          height: '100%',
+          background: 'linear-gradient(90deg, #FFD700, #FF8C00)',
+          transition: 'width 0.3s ease'
+        }} />
+      </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.05); opacity: 0.9; }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+// Install PWA Button Component
+function InstallButton() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [showInstall, setShowInstall] = useState(false)
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setShowInstall(true)
+    }
+
+    window.addEventListener('beforeinstallprompt', handler)
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstall(false)
+    }
+
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return
+
+    deferredPrompt.prompt()
+    const { outcome } = await deferredPrompt.userChoice
+    
+    if (outcome === 'accepted') {
+      setShowInstall(false)
+    }
+    
+    setDeferredPrompt(null)
+  }
+
+  if (!showInstall) return null
+
+  return (
+    <button
+      onClick={handleInstall}
+      style={{
+        position: 'fixed',
+        bottom: '80px',
+        right: '20px',
+        background: 'linear-gradient(135deg, #FF8C00, #FFD700)',
+        border: 'none',
+        borderRadius: '50px',
+        padding: '0.8em 1.5em',
+        color: '#1a1a1a',
+        fontWeight: 'bold',
+        fontSize: '0.9em',
+        cursor: 'pointer',
+        boxShadow: '0 4px 20px rgba(255, 140, 0, 0.4)',
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5em',
+        animation: 'slideIn 0.5s ease-out'
+      }}
+    >
+      <span>📲</span>
+      <span>Install App</span>
+      <style>{`
+        @keyframes slideIn {
+          from {
+            transform: translateX(200px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
+    </button>
+  )
+}
+
 // Bluetooth service UUIDs
 const CASHU_SERVICE_UUID = '12345678-1234-5678-1234-56789abcdef0'
 const TOKEN_CHARACTERISTIC_UUID = '12345678-1234-5678-1234-56789abcdef1'
@@ -795,6 +959,7 @@ function SendViaLightning({
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true)
   const [wallet, setWallet] = useState(null)
   const [mintUrl, setMintUrl] = useState(DEFAULT_MINTS[0].url)
   const [customMints, setCustomMints] = useState([])
@@ -1384,6 +1549,11 @@ function App() {
 
   const currentMintBalance = balances[mintUrl] || 0
 
+  // Show splash screen on first load
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />
+  }
+
   if (showScanner) {
     return (
       <QRScanner
@@ -1432,6 +1602,7 @@ function App() {
   if (showMintSettings) {
     return (
       <div className="app">
+      <InstallButton />
         <header>
           <button className="back-btn" onClick={() => setShowMintSettings(false)}>← Back</button>
           <h1>⚙️ Settings</h1>
@@ -1526,6 +1697,7 @@ function App() {
   if (showHistoryPage) {
     return (
       <div className="app">
+      <InstallButton />
         <header>
           <button className="back-btn" onClick={() => {
             setShowHistoryPage(false)
@@ -1576,6 +1748,7 @@ function App() {
   if (showSendPage) {
     return (
       <div className="app">
+      <InstallButton />
         <header>
           <button className="back-btn" onClick={() => {
             setShowSendPage(false)
@@ -1702,6 +1875,7 @@ function App() {
   if (showReceivePage) {
     return (
       <div className="app">
+      <InstallButton />
         <header>
           <button className="back-btn" onClick={() => {
             setShowReceivePage(false)
@@ -1804,6 +1978,7 @@ function App() {
   // Main page
   return (
     <div className="app">
+      <InstallButton />
       <header className="main-header">
         <div className="wallet-name">⚡ {WALLET_NAME}</div>
         <button className="settings-icon" onClick={() => setShowMintSettings(true)}>
