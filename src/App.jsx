@@ -9,6 +9,13 @@ const DEFAULT_MINTS = [
 
 const WALLET_NAME = 'Satoshi Pay'
 
+// Vibration helper
+const vibrate = (pattern = [100]) => {
+  if ('vibrate' in navigator) {
+    navigator.vibrate(pattern)
+  }
+}
+
 // Splash Screen Component
 function SplashScreen({ onComplete }) {
   const [progress, setProgress] = useState(0)
@@ -68,7 +75,7 @@ function SplashScreen({ onComplete }) {
         opacity: 0.7,
         marginBottom: '2em'
       }}>
-        Offline Bitcoin Payments
+        Bitcoin Ecash Wallet
       </p>
       
       <div style={{
@@ -173,279 +180,80 @@ function InstallButton() {
   )
 }
 
-// Bluetooth service UUIDs
-const CASHU_SERVICE_UUID = '12345678-1234-5678-1234-56789abcdef0'
-const TOKEN_CHARACTERISTIC_UUID = '12345678-1234-5678-1234-56789abcdef1'
-
-// Bluetooth Transfer Component
-function BluetoothTransfer({ 
-  generatedToken, 
-  onReceiveToken, 
+// Pending Tokens Component
+function PendingTokensView({ 
+  pendingTokens, 
+  onReclaim, 
+  onCopy, 
+  onRemove,
   onClose 
 }) {
-  const [mode, setMode] = useState(null)
-  const [status, setStatus] = useState('')
-  const [error, setError] = useState('')
-  const [connecting, setConnecting] = useState(false)
-
-  const isBluetoothSupported = () => {
-    return navigator.bluetooth !== undefined
-  }
-
-  const handleSendViaBluetooth = async () => {
-    if (!generatedToken) {
-      setError('No token to send. Generate a token first.')
-      return
-    }
-
-    try {
-      setConnecting(true)
-      setError('')
-      setStatus('Looking for devices...')
-
-      const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: [CASHU_SERVICE_UUID]
-      })
-
-      setStatus('Connecting...')
-      const server = await device.gatt.connect()
-      
-      setStatus('Getting service...')
-      const service = await server.getPrimaryService(CASHU_SERVICE_UUID)
-      
-      setStatus('Getting characteristic...')
-      const characteristic = await service.getCharacteristic(TOKEN_CHARACTERISTIC_UUID)
-
-      setStatus('Sending token...')
-      
-      const encoder = new TextEncoder()
-      const tokenBytes = encoder.encode(generatedToken)
-      
-      const chunkSize = 512
-      for (let i = 0; i < tokenBytes.length; i += chunkSize) {
-        const chunk = tokenBytes.slice(i, i + chunkSize)
-        await characteristic.writeValue(chunk)
-      }
-
-      setStatus('✅ Token sent successfully!')
-      setTimeout(() => {
-        onClose()
-      }, 2000)
-
-    } catch (err) {
-      console.error('Bluetooth send error:', err)
-      setError(`Failed to send: ${err.message}`)
-    } finally {
-      setConnecting(false)
-    }
-  }
-
-  const handleReceiveViaBluetooth = async () => {
-    try {
-      setConnecting(true)
-      setError('')
-      setStatus('Starting Bluetooth...')
-
-      const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: [CASHU_SERVICE_UUID]
-      })
-
-      setStatus('Connected! Waiting for token...')
-
-      const server = await device.gatt.connect()
-      const service = await server.getPrimaryService(CASHU_SERVICE_UUID)
-      const characteristic = await service.getCharacteristic(TOKEN_CHARACTERISTIC_UUID)
-
-      characteristic.addEventListener('characteristicvaluechanged', (event) => {
-        const decoder = new TextDecoder()
-        const receivedToken = decoder.decode(event.target.value)
-        
-        setStatus('✅ Token received!')
-        onReceiveToken(receivedToken)
-        
-        setTimeout(() => {
-          onClose()
-        }, 2000)
-      })
-
-      await characteristic.startNotifications()
-
-    } catch (err) {
-      console.error('Bluetooth receive error:', err)
-      setError(`Failed to receive: ${err.message}`)
-    } finally {
-      setConnecting(false)
-    }
-  }
-
-  if (!isBluetoothSupported()) {
-    return (
-      <div className="card" style={{ background: 'rgba(255, 107, 107, 0.1)', borderColor: '#ff6b6b' }}>
-        <h3>❌ Bluetooth Not Supported</h3>
-        <p>Your browser doesn't support Web Bluetooth API.</p>
-        <p style={{ fontSize: '0.9em', marginTop: '1em' }}>
-          Try using Chrome, Edge, or Opera on Android/Desktop.
-        </p>
-        <button className="secondary-btn" onClick={onClose} style={{ marginTop: '1em' }}>
-          Close
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <div className="card">
-      <h3>📡 Bluetooth Transfer</h3>
-      
-      {error && (
-        <div style={{ 
-          background: 'rgba(255, 107, 107, 0.1)', 
-          padding: '1em', 
-          borderRadius: '8px',
-          marginBottom: '1em',
-          color: '#ff6b6b'
-        }}>
-          {error}
-        </div>
-      )}
+    <div className="app">
+      <header>
+        <button className="back-btn" onClick={onClose}>← Back</button>
+        <h1>📋 Pending Tokens</h1>
+      </header>
 
-      {status && (
-        <div style={{ 
-          background: 'rgba(81, 207, 102, 0.1)', 
-          padding: '1em', 
-          borderRadius: '8px',
-          marginBottom: '1em',
-          color: '#51cf66'
-        }}>
-          {status}
-        </div>
-      )}
-
-      {!mode ? (
-        <>
-          <p style={{ marginBottom: '1em', opacity: 0.8 }}>
-            Transfer Cashu tokens offline via Bluetooth
+      {pendingTokens.length === 0 ? (
+        <div className="card">
+          <p style={{ textAlign: 'center', opacity: 0.6 }}>
+            No pending tokens
           </p>
-
-          <button
-            className="primary-btn"
-            onClick={() => setMode('send')}
-            disabled={!generatedToken}
-            style={{ marginBottom: '0.5em' }}
-          >
-            📤 Send Token via Bluetooth
-          </button>
-
-          <button
-            className="secondary-btn"
-            onClick={() => setMode('receive')}
-          >
-            📥 Receive Token via Bluetooth
-          </button>
-
-          {!generatedToken && (
-            <p style={{ fontSize: '0.85em', marginTop: '1em', opacity: 0.6 }}>
-              💡 Generate a token first to send via Bluetooth
-            </p>
-          )}
-        </>
-      ) : mode === 'send' ? (
-        <>
-          <div style={{ 
-            background: 'rgba(255, 255, 255, 0.05)', 
-            padding: '1em', 
-            borderRadius: '8px',
-            marginBottom: '1em'
-          }}>
-            <p style={{ fontSize: '0.9em', marginBottom: '0.5em' }}>
-              <strong>How it works:</strong>
-            </p>
-            <ol style={{ fontSize: '0.85em', paddingLeft: '1.5em', margin: 0 }}>
-              <li>Receiver opens "Receive via Bluetooth"</li>
-              <li>You click "Connect & Send"</li>
-              <li>Select receiver's device</li>
-              <li>Token transfers offline!</li>
-            </ol>
-          </div>
-
-          <button
-            className="primary-btn"
-            onClick={handleSendViaBluetooth}
-            disabled={connecting}
-          >
-            {connecting ? 'Connecting...' : '📡 Connect & Send'}
-          </button>
-
-          <button
-            className="secondary-btn"
-            onClick={() => setMode(null)}
-            disabled={connecting}
-            style={{ marginTop: '0.5em' }}
-          >
-            ← Back
-          </button>
-        </>
+          <p style={{ fontSize: '0.85em', opacity: 0.5, marginTop: '0.5em' }}>
+            Generated tokens that haven't been sent will appear here
+          </p>
+        </div>
       ) : (
-        <>
-          <div style={{ 
-            background: 'rgba(255, 255, 255, 0.05)', 
-            padding: '1em', 
-            borderRadius: '8px',
-            marginBottom: '1em'
-          }}>
-            <p style={{ fontSize: '0.9em', marginBottom: '0.5em' }}>
-              <strong>How it works:</strong>
+        pendingTokens.map(pending => (
+          <div key={pending.id} className="card" style={{ borderColor: '#FF8C00' }}>
+            <div style={{ marginBottom: '1em' }}>
+              <div style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#FF8C00' }}>
+                {pending.amount} sats
+              </div>
+              <div style={{ fontSize: '0.8em', opacity: 0.6 }}>
+                {new Date(pending.timestamp).toLocaleString()}
+              </div>
+            </div>
+
+            <div className="token-box">
+              <textarea
+                readOnly
+                value={pending.token}
+                rows={3}
+                style={{ fontSize: '0.7em', marginBottom: '0.5em' }}
+              />
+            </div>
+
+            <button
+              className="copy-btn"
+              onClick={() => onCopy(pending.token)}
+              style={{ marginBottom: '0.5em' }}
+            >
+              📋 Copy Token
+            </button>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5em' }}>
+              <button
+                className="secondary-btn"
+                onClick={() => onReclaim(pending)}
+              >
+                ↩️ Reclaim
+              </button>
+              <button
+                className="cancel-btn"
+                onClick={() => onRemove(pending.id)}
+              >
+                🗑️ Delete
+              </button>
+            </div>
+
+            <p style={{ fontSize: '0.75em', opacity: 0.5, marginTop: '0.5em' }}>
+              💡 Reclaim to add back to your balance, or copy to send
             </p>
-            <ol style={{ fontSize: '0.85em', paddingLeft: '1.5em', margin: 0 }}>
-              <li>Click "Start Listening"</li>
-              <li>Wait for sender to connect</li>
-              <li>Accept connection</li>
-              <li>Receive token offline!</li>
-            </ol>
           </div>
-
-          <button
-            className="primary-btn"
-            onClick={handleReceiveViaBluetooth}
-            disabled={connecting}
-          >
-            {connecting ? 'Listening...' : '📡 Start Listening'}
-          </button>
-
-          <button
-            className="secondary-btn"
-            onClick={() => setMode(null)}
-            disabled={connecting}
-            style={{ marginTop: '0.5em' }}
-          >
-            ← Back
-          </button>
-        </>
+        ))
       )}
-
-      <button
-        className="back-btn"
-        onClick={onClose}
-        disabled={connecting}
-        style={{ marginTop: '1em', position: 'relative', left: 0, transform: 'none' }}
-      >
-        Close
-      </button>
-
-      <div style={{ 
-        marginTop: '1.5em', 
-        padding: '1em', 
-        background: 'rgba(255, 255, 255, 0.03)',
-        borderRadius: '8px',
-        fontSize: '0.85em',
-        opacity: 0.7
-      }}>
-        <p><strong>📱 Browser Support:</strong></p>
-        <ul style={{ paddingLeft: '1.5em', margin: '0.5em 0 0 0' }}>
-        </ul>
-      </div>
     </div>
   )
 }
@@ -843,6 +651,9 @@ function SendViaLightning({
 
       addTransaction('send', decodedInvoice.amount, 'Paid Lightning invoice', mintUrl)
 
+      // Vibrate on successful send
+      vibrate([100, 50, 100])
+
       setSuccess(`✅ Sent ${decodedInvoice.amount} sats via Lightning!`)
 
       setTimeout(() => {
@@ -991,13 +802,83 @@ function App() {
   const [receiveMethod, setReceiveMethod] = useState(null)
   const [transactions, setTransactions] = useState([])
   const [decodedInvoice, setDecodedInvoice] = useState(null)
-
-  // Scanner states
+  
   const [showScanner, setShowScanner] = useState(false)
   const [scanMode, setScanMode] = useState(null)
+  
+  // Pending tokens state
+  const [pendingTokens, setPendingTokens] = useState([])
+  const [showPendingTokens, setShowPendingTokens] = useState(false)
 
-  // 🔥 NEW: Bluetooth state
-  const [showBluetoothTransfer, setShowBluetoothTransfer] = useState(false)
+  // Load pending tokens on mount
+  useEffect(() => {
+    const loadPendingTokens = () => {
+      try {
+        const saved = localStorage.getItem('pending_tokens')
+        if (saved) {
+          setPendingTokens(JSON.parse(saved))
+        }
+      } catch (err) {
+        console.error('Error loading pending tokens:', err)
+      }
+    }
+    loadPendingTokens()
+  }, [])
+
+  // Save pending token
+  const savePendingToken = (token, amount, mintUrl) => {
+    const pending = {
+      id: Date.now(),
+      token,
+      amount,
+      mintUrl,
+      timestamp: new Date().toISOString()
+    }
+    const updated = [pending, ...pendingTokens]
+    setPendingTokens(updated)
+    localStorage.setItem('pending_tokens', JSON.stringify(updated))
+  }
+
+  // Remove pending token
+  const removePendingToken = (tokenId) => {
+    const updated = pendingTokens.filter(t => t.id !== tokenId)
+    setPendingTokens(updated)
+    localStorage.setItem('pending_tokens', JSON.stringify(updated))
+  }
+
+  // Reclaim a pending token
+  const reclaimPendingToken = async (pendingToken) => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const decoded = getDecodedToken(pendingToken.token)
+      const tokenMintUrl = decoded.token[0]?.mint
+      
+      const targetMint = new CashuMint(tokenMintUrl)
+      const targetWallet = new CashuWallet(targetMint)
+      
+      const proofs = await targetWallet.receive(pendingToken.token)
+      
+      if (proofs && proofs.length > 0) {
+        const existingProofs = getProofsForMint(tokenMintUrl)
+        const allProofs = [...existingProofs, ...proofs]
+        saveProofsForMint(tokenMintUrl, allProofs)
+        calculateAllBalances()
+        
+        removePendingToken(pendingToken.id)
+        
+        vibrate([200])
+        
+        setSuccess(`✅ Reclaimed ${pendingToken.amount} sats!`)
+        setTimeout(() => setSuccess(''), 2000)
+      }
+    } catch (err) {
+      setError(`Could not reclaim: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const savePendingQuote = (quote, amount, mintUrl) => {
     const pending = {
@@ -1055,8 +936,11 @@ function App() {
         localStorage.setItem(key, JSON.stringify(allProofs))
 
         calculateAllBalances()
-        addTransaction('receive', pending.amount, 'Minted via Lightning (auto-recovered)', pending.mintUrl)
+        addTransaction('receive', pending.amount, 'Minted via Lightning', pending.mintUrl)
         clearPendingQuote()
+
+        // Vibrate on successful receive
+        vibrate([200])
 
         setSuccess(`🎉 Received ${pending.amount} sats!`)
         setLightningInvoice('')
@@ -1168,15 +1052,22 @@ function App() {
       const mint = new CashuMint(mintUrl)
       const newWallet = new CashuWallet(mint)
 
-      const info = await mint.getInfo()
-      setMintInfo(info)
+      // Try to get mint info, but don't fail if offline
+      try {
+        const info = await mint.getInfo()
+        setMintInfo(info)
+      } catch (infoError) {
+        console.log('Could not fetch mint info (offline?):', infoError)
+        setMintInfo({ name: 'Mint', nuts: {} })
+      }
 
       setWallet(newWallet)
       await validateProofs(newWallet, mintUrl)
       calculateAllBalances()
 
     } catch (err) {
-      setError(`Failed to connect: ${err.message}`)
+      console.error('Wallet init error:', err)
+      setMintInfo({ name: 'Mint', nuts: {} })
     } finally {
       setLoading(false)
     }
@@ -1410,7 +1301,13 @@ function App() {
       setGeneratedToken(token)
       setGeneratedQR(qr)
 
-      addTransaction('send', amount, 'Ecash token sent', mintUrl)
+      // Save as pending token
+      savePendingToken(token, amount, mintUrl)
+
+      addTransaction('send', amount, 'Ecash token generated (pending)', mintUrl)
+
+      // Vibrate on successful generation
+      vibrate([100, 50, 100])
 
       setSuccess('Token generated!')
       setSendAmount('')
@@ -1470,6 +1367,9 @@ function App() {
 
       const receivedAmount = proofs.reduce((sum, p) => sum + (p.amount || 0), 0)
       addTransaction('receive', receivedAmount, 'Ecash token received', detectedMintUrl)
+
+      // Vibrate on successful receive
+      vibrate([200])
 
       setSuccess(`✅ Received ${receivedAmount} sats!`)
       setReceiveToken('')
@@ -1564,45 +1464,23 @@ function App() {
     )
   }
 
-  // 🔥 NEW: Bluetooth modal overlay
-  if (showBluetoothTransfer) {
+  // Pending tokens page
+  if (showPendingTokens) {
     return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.9)',
-        zIndex: 10000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1em',
-        overflowY: 'auto'
-      }}>
-        <div style={{ maxWidth: '500px', width: '100%' }}>
-          <BluetoothTransfer
-            generatedToken={generatedToken}
-            onReceiveToken={(token) => {
-              setReceiveToken(token)
-              setShowBluetoothTransfer(false)
-              setShowReceivePage(true)
-              setReceiveMethod('ecash')
-              setTimeout(() => handleReceiveEcash(), 100)
-            }}
-            onClose={() => setShowBluetoothTransfer(false)}
-          />
-        </div>
-      </div>
+      <PendingTokensView
+        pendingTokens={pendingTokens}
+        onReclaim={reclaimPendingToken}
+        onCopy={(token) => copyToClipboard(token, 'Token')}
+        onRemove={removePendingToken}
+        onClose={() => setShowPendingTokens(false)}
+      />
     )
   }
 
-// Settings page
+  // Settings page
   if (showMintSettings) {
     return (
       <div className="app">
-      <InstallButton />
         <header>
           <button className="back-btn" onClick={() => setShowMintSettings(false)}>← Back</button>
           <h1>⚙️ Settings</h1>
@@ -1697,7 +1575,6 @@ function App() {
   if (showHistoryPage) {
     return (
       <div className="app">
-      <InstallButton />
         <header>
           <button className="back-btn" onClick={() => {
             setShowHistoryPage(false)
@@ -1744,11 +1621,10 @@ function App() {
     )
   }
 
-  // Send page with Bluetooth support
+  // Send page
   if (showSendPage) {
     return (
       <div className="app">
-      <InstallButton />
         <header>
           <button className="back-btn" onClick={() => {
             setShowSendPage(false)
@@ -1810,11 +1686,10 @@ function App() {
             setDecodedInvoice={setDecodedInvoice}
           />
         ) : (
-          // Ecash send
           <div className="card">
             <h3>💰 Send Ecash</h3>
             <p style={{ marginBottom: '1em' }}>
-              Generate an offline token
+              Generate a token to send
             </p>
             <input
               type="number"
@@ -1844,19 +1719,6 @@ function App() {
                 <button className="copy-btn" onClick={() => copyToClipboard(generatedToken, 'Token')}>
                   📋 Copy Token
                 </button>
-
-                {/* 🔥 NEW: Bluetooth Send Button */}
-                <button 
-                  className="primary-btn" 
-                  onClick={() => setShowBluetoothTransfer(true)}
-                  style={{ 
-                    marginTop: '0.5em',
-                    background: '#1e90ff',
-                    width: '100%'
-                  }}
-                >
-                  📡 Send via Bluetooth
-                </button>
               </div>
             )}
 
@@ -1871,11 +1733,10 @@ function App() {
     )
   }
 
-  // Receive page with Bluetooth support
+  // Receive page
   if (showReceivePage) {
     return (
       <div className="app">
-      <InstallButton />
         <header>
           <button className="back-btn" onClick={() => {
             setShowReceivePage(false)
@@ -1912,19 +1773,6 @@ function App() {
             <button className="primary-btn" style={{ marginBottom: '0.5em' }} onClick={() => setReceiveMethod('ecash')}>
               💰 Paste Ecash Token
             </button>
-
-            {/* 🔥 NEW: Bluetooth Receive Button */}
-            <button 
-              className="secondary-btn" 
-              onClick={() => {
-                setReceiveMethod('bluetooth')
-                setShowBluetoothTransfer(true)
-              }}
-              style={{ background: '#1e90ff' }}
-            >
-              📡 Receive via Bluetooth
-            </button>
-
             <button className="secondary-btn" onClick={() => setReceiveMethod('lightning')}>
               ⚡ Receive via Lightning
             </button>
@@ -1951,15 +1799,6 @@ function App() {
               ← Change Method
             </button>
           </div>
-        ) : receiveMethod === 'bluetooth' ? (
-          <div className="card">
-            <p style={{ textAlign: 'center', opacity: 0.7 }}>
-              Bluetooth transfer window will open automatically
-            </p>
-            <button className="back-btn" style={{ position: 'relative', left: 0, transform: 'none' }} onClick={resetReceivePage}>
-              ← Change Method
-            </button>
-          </div>
         ) : (
           <div className="card">
             <h3>⚡ Receive Lightning</h3>
@@ -1979,6 +1818,7 @@ function App() {
   return (
     <div className="app">
       <InstallButton />
+      
       <header className="main-header">
         <div className="wallet-name">⚡ {WALLET_NAME}</div>
         <button className="settings-icon" onClick={() => setShowMintSettings(true)}>
@@ -2061,6 +1901,21 @@ function App() {
           </div>
         )}
       </div>
+
+      {pendingTokens.length > 0 && (
+        <div className="card" style={{ borderColor: '#FF8C00', background: 'rgba(255, 140, 0, 0.05)' }}>
+          <h3>⚠️ Pending Tokens</h3>
+          <p style={{ fontSize: '0.9em', marginBottom: '1em' }}>
+            You have {pendingTokens.length} unsent token{pendingTokens.length > 1 ? 's' : ''}
+          </p>
+          <button
+            className="secondary-btn"
+            onClick={() => setShowPendingTokens(true)}
+          >
+            📋 View Pending Tokens
+          </button>
+        </div>
+      )}
 
       <button className="history-btn" onClick={() => setShowHistoryPage(true)}>
         📜 Transaction History
