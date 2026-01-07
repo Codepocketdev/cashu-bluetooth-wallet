@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CashuMint, CashuWallet, getDecodedToken } from '@cashu/cashu-ts'
 import { vibrate } from '../utils/cashu.js'
+import { ArrowDownToLine, Wallet, CheckCircle, FileDown } from 'lucide-react'
 
 export default function ReceivePage({
   wallet,
