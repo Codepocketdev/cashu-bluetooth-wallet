@@ -16,13 +16,31 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- Service Worker Registration -->
+    <!-- Service Worker Registration with Update Handling -->
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/satoshi-pay-wallet/sw.js')
             .then(registration => {
               console.log('✅ Service Worker registered:', registration)
+              
+              // Check for updates every 60 seconds
+              setInterval(() => {
+                registration.update()
+              }, 60000)
+              
+              // Detect when new SW is waiting
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New SW is ready, notify user
+                    if (confirm('New version available! Reload to update?')) {
+                      window.location.reload()
+                    }
+                  }
+                })
+              })
             })
             .catch(error => {
               console.log('❌ Service Worker registration failed:', error)

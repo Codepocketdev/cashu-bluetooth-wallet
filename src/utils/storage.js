@@ -1,5 +1,15 @@
 import { encryptProofs, decryptProofs } from './cashu.js'
 
+// Check if localStorage is near quota
+function isQuotaExceeded(err) {
+  return err instanceof DOMException && (
+    err.code === 22 ||
+    err.code === 1014 ||
+    err.name === 'QuotaExceededError' ||
+    err.name === 'NS_ERROR_DOM_QUOTA_REACHED'
+  )
+}
+
 // Proofs Storage
 export const saveProofsForMint = (mintUrl, proofs, masterKey = null) => {
   try {
@@ -12,8 +22,13 @@ export const saveProofsForMint = (mintUrl, proofs, masterKey = null) => {
     } else {
       localStorage.setItem(key, JSON.stringify(validProofs))
     }
+    return { success: true }
   } catch (err) {
     console.error('Error saving proofs:', err)
+    if (isQuotaExceeded(err)) {
+      return { success: false, error: 'QUOTA_EXCEEDED' }
+    }
+    return { success: false, error: err.message }
   }
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CashuMint, CashuWallet } from '@cashu/cashu-ts'
 import {
   generateWalletSeed,
@@ -44,6 +44,9 @@ export const useWallet = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  // Race condition prevention
+  const isInitializing = useRef(false)
+
   // Initialize wallet
   useEffect(() => {
     const initializeWallet = async () => {
@@ -78,8 +81,17 @@ export const useWallet = () => {
   }, [mintUrl, bip39Seed])
 
   const initWallet = async () => {
+    if (isInitializing.current) {
+      console.log('Init already in progress, skipping...')
+      return
+    }
+
+    isInitializing.current = true
+    
     try {
       setLoading(true)
+      setError('')
+      
       const mint = new CashuMint(mintUrl)
       const newWallet = new CashuWallet(mint, { bip39seed: bip39Seed })
 
@@ -87,6 +99,7 @@ export const useWallet = () => {
         const info = await mint.getInfo()
         setMintInfo(info)
       } catch (infoError) {
+        console.warn('Failed to fetch mint info:', infoError)
         setMintInfo({ name: 'Mint', nuts: {} })
       }
 
@@ -94,8 +107,11 @@ export const useWallet = () => {
       calculateAllBalances()
     } catch (err) {
       console.error('Wallet init error:', err)
+      setError(`Failed to connect to mint: ${err.message}`)
+      setWallet(null)
     } finally {
       setLoading(false)
+      isInitializing.current = false
     }
   }
 
