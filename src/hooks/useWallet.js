@@ -145,30 +145,122 @@ export const useWallet = () => {
     calculateAllBalances()
   }
 
-  const handleRestoreWallet = async (restoredSeed) => {
-    allMints.forEach(mint => {
-      const key = `cashu_proofs_${btoa(mint.url)}`
-      localStorage.removeItem(key)
-    })
+  // CORRECTED handleRestoreWallet function for useWallet.js
+// Replace the existing handleRestoreWallet function with this one
+
+const handleRestoreWallet = async (restoredSeed) => {
+  try {
+    setLoading(true)
+    setError('')
+    
+    console.log('Starting wallet restoration...')
+    
+    // Step 1: Derive keys from restored seed
+    const seed = deriveMasterKey(restoredSeed)
+    const encKey = deriveEncryptionKey(restoredSeed)
+    
+    // Step 2: Clear old data ONLY from transactions (keep mint URLs for scanning)
     localStorage.removeItem('cashu_transactions')
     localStorage.removeItem('pending_tokens')
-
+    
+    // Step 3: Save new seed
     localStorage.setItem('wallet_seed', restoredSeed)
     localStorage.setItem('wallet_backed_up', 'true')
     setSeedPhrase(restoredSeed)
-
-    const seed = deriveMasterKey(restoredSeed)
-    const encKey = deriveEncryptionKey(restoredSeed)
     setBip39Seed(seed)
     setMasterKey(encKey)
-
+    
+    // Step 4: Load mints (both default and custom)
     loadCustomMintsData()
-    await initWallet()
+    
+    // Step 5: Initialize wallet with new seed
+    const mint = new CashuMint(mintUrl)
+    const newWallet = new CashuWallet(mint, { bip39seed: seed })
+    setWallet(newWallet)
+    
+    console.log('Wallet initialized with restored seed')
+    
+    // Step 6: CRITICAL - Restore proofs from all mints
+    console.log('Scanning mints for tokens...')
+    
+    let totalRestored = 0
+    const allMintsToScan = [...DEFAULT_MINTS, ...customMints]
+    
+    for (const mintToScan of allMintsToScan) {
+      try {
+        console.log(`Scanning ${mintToScan.name}...`)
+        
+        const scanMint = new CashuMint(mintToScan.url)
+        const scanWallet = new CashuWallet(scanMint, { bip39seed: seed })
+        
+        // Get mint info to check keysets
+        const info = await scanMint.getInfo()
+        
+        if (info?.nuts?.['7']?.supported) {
+          // NUT-07: Token state check - Restore by checking state
+          try {
+            // Try to restore tokens by deriving keys and checking with mint
+            // This uses the deterministic derivation from the seed
+            const keysetIds = info.keysets || []
+            
+            for (const keysetId of keysetIds) {
+              try {
+                // Derive proofs for this keyset
+                // The wallet will automatically derive correct keys from seed
+                const keyset = await scanMint.getKeys(keysetId)
+                
+                // Check if we have any proofs for this keyset
+                // By trying to restore from the deterministic path
+                const restoredProofs = await scanWallet.restore(0, 5, { keysetId })
+                
+                if (restoredProofs && restoredProofs.length > 0) {
+                  // Save restored proofs
+                  const key = `cashu_proofs_${btoa(mintToScan.url)}`
+                  const existing = JSON.parse(localStorage.getItem(key) || '[]')
+                  const combined = [...existing, ...restoredProofs]
+                  localStorage.setItem(key, JSON.stringify(combined))
+                  
+                  const amount = restoredProofs.reduce((sum, p) => sum + p.amount, 0)
+                  totalRestored += amount
+                  
+                  console.log(`Restored ${amount} sats from ${mintToScan.name}`)
+                }
+              } catch (keysetErr) {
+                // Keyset might not have our tokens, continue
+                console.log(`No tokens in keyset ${keysetId}`)
+              }
+            }
+          } catch (restoreErr) {
+            console.log(`Could not restore from ${mintToScan.name}:`, restoreErr.message)
+          }
+        } else {
+          console.log(`${mintToScan.name} does not support NUT-07 restore`)
+        }
+        
+      } catch (mintErr) {
+        console.log(`Error scanning ${mintToScan.name}:`, mintErr.message)
+        // Continue with other mints
+      }
+    }
+    
+    // Step 7: Recalculate balances with restored proofs
     calculateAllBalances()
-
-    setSuccess('Wallet restored successfully!')
-    setTimeout(() => setSuccess(''), 3000)
+    
+    console.log(`Wallet restoration complete. Restored ${totalRestored} sats total.`)
+    
+    setSuccess(`Wallet restored successfully! Found ${totalRestored} sats.`)
+    setTimeout(() => setSuccess(''), 5000)
+    
+    setLoading(false)
+    
+  } catch (err) {
+    console.error('Restoration error:', err)
+    setError(`Restoration failed: ${err.message}`)
+    setLoading(false)
+    throw err
   }
+}
+
 
   const loadCustomMintsData = () => {
     const custom = loadCustomMints()
