@@ -61,8 +61,8 @@ header h1 {
 
 .balance-display {
   text-align: center;
-  padding: 2em 0;
-  margin-bottom: 2em;
+  padding: 1em 0 0.5em 0;
+  margin-bottom: 0.5em;
 }
 
 .balance-amount {
@@ -290,4 +290,3 @@ div[style*="border-bottom"][style*="border-right"] {
   border-color: #FFD700 !important;
   border-width: 3px !important;
 }
-
