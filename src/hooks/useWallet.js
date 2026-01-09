@@ -44,10 +44,6 @@ export const useWallet = () => {
     return snapshot?.total || 0
   })
 
-  // NEW: Track when balance was last loaded to prevent premature clearing
-  const balanceLoadTime = useRef(Date.now())
-  const MIN_DISPLAY_TIME = 30000 // 30 seconds
-
   // Transactions
   const [transactions, setTransactions] = useState([])
 
@@ -87,10 +83,8 @@ export const useWallet = () => {
         loadCustomMintsData()
         initWallet()
         loadTxData()
-        // Recalculate balance in background after minimum display time
-        setTimeout(() => {
-          calculateAllBalances()
-        }, MIN_DISPLAY_TIME)
+        // REMOVED: Don't auto-calculate balance - use cached balance indefinitely
+        // Only recalculates on user actions (send/receive/manual refresh)
       } else {
         const newSeed = generateWalletSeed()
         setSeedPhrase(newSeed)
@@ -109,19 +103,8 @@ export const useWallet = () => {
     }
   }, [mintUrl, bip39Seed])
 
-  // NEW: Calculate balance when masterKey is ready (but only after minimum display time)
-  useEffect(() => {
-    if (masterKey && allMints.length > 0) {
-      const timeSinceLoad = Date.now() - balanceLoadTime.current
-      const delay = Math.max(0, MIN_DISPLAY_TIME - timeSinceLoad)
-      
-      console.log(`🔑 MasterKey ready, calculating balance in ${delay}ms...`)
-      
-      setTimeout(() => {
-        calculateAllBalances()
-      }, delay)
-    }
-  }, [masterKey, allMints])
+  // REMOVED: Don't auto-calculate when masterKey is ready
+  // Balance stays from cache until user action triggers recalculation
 
   const initWallet = async () => {
     if (isInitializing.current) {
@@ -147,7 +130,6 @@ export const useWallet = () => {
       }
 
       setWallet(newWallet)
-      // Don't calculate immediately - let the cached balance show
     } catch (err) {
       console.error('Wallet init error:', err)
       setError(`Failed to connect to mint: ${err.message}`)
@@ -199,10 +181,8 @@ export const useWallet = () => {
     loadCustomMintsData()
     initWallet()
     loadTxData()
-    // Calculate after minimum display time
-    setTimeout(() => {
-      calculateAllBalances()
-    }, MIN_DISPLAY_TIME)
+    // For new wallets, calculate immediately (no cached balance yet)
+    calculateAllBalances()
   }
 
   const handleRestoreWallet = async (restoredSeed) => {
