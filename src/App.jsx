@@ -141,9 +141,13 @@ function App() {
         secondary: btcPrice ? formatFiat(satsToFiat(totalBalance, btcPrice), selectedCurrency) : null
       }
     } else {
+      // Fiat mode - show number on top, currency below (like sats)
+      const fiatAmount = btcPrice ? satsToFiat(totalBalance, btcPrice).toFixed(2) : '0.00'
+      const currencySymbol = selectedCurrency.toUpperCase()
+      
       return {
-        primary: btcPrice ? formatFiat(satsToFiat(totalBalance, btcPrice), selectedCurrency) : totalBalance + ' sats',
-        primaryUnit: '',
+        primary: fiatAmount,
+        primaryUnit: currencySymbol,
         secondary: totalBalance + ' sats'
       }
     }
@@ -430,21 +434,21 @@ function App() {
       {error && <div className="error">{error}</div>}
       {success && <div className="success">{success}</div>}
 
-      <div className="balance-display" style={{ marginBottom: '0.5em' }}>
+      <div className="balance-display">
         <div className="balance-amount">{balance.primary}</div>
         {balance.primaryUnit && <div className="balance-unit">{balance.primaryUnit}</div>}
-        {mintInfo && <div className="mint-name" style={{ marginBottom: '0.3em' }}>{mintInfo.name || 'Connected'}</div>}
+        {mintInfo && <div className="mint-name">{mintInfo.name || 'Connected'}</div>}
         
         {balance.secondary && (
           <div 
             onClick={toggleDisplayMode}
             style={{
               textAlign: 'center',
-              fontSize: '0.8em',
-              opacity: 0.7,
+              fontSize: '0.75em',
+              opacity: 0.6,
               cursor: 'pointer',
-              marginTop: '0.2em',
-              padding: '0.2em',
+              marginTop: '0.3em',
+              padding: '0.3em',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -452,15 +456,15 @@ function App() {
               transition: 'opacity 0.2s'
             }}
             onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
           >
             {balance.secondary}
-            <RefreshCw size={12} />
+            <RefreshCw size={11} />
           </div>
         )}
       </div>
 
-      <div className="card" style={{ padding: '1em', marginBottom: '0.8em' }}>
+      <div className="card" style={{ padding: '1em', marginBottom: '1em' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5em', marginBottom: '0.5em' }}>
           <Zap size={18} /> Get Tokens
         </h3>
@@ -494,12 +498,12 @@ function App() {
       </div>
 
       {pendingTokens.length > 0 && (
-        <button className="history-btn" onClick={() => setShowPendingTokens(true)} style={{ background: 'rgba(255, 140, 0, 0.1)', borderColor: '#FF8C00' }}>
+        <button className="history-btn" onClick={() => setShowPendingTokens(true)} style={{ background: 'rgba(255, 140, 0, 0.1)', borderColor: '#FF8C00', marginBottom: '0.5em' }}>
           <FileText size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.3em' }} /> Pending Tokens ({pendingTokens.length})
         </button>
       )}
 
-      <button className="history-btn" onClick={() => setShowHistoryPage(true)} style={{ marginBottom: '0.5em' }}>
+      <button className="history-btn" onClick={() => setShowHistoryPage(true)} style={{ marginBottom: '1em' }}>
         <FileText size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.3em' }} /> Transaction History
       </button>
 
@@ -515,11 +519,10 @@ function App() {
       </div>
 
       <footer style={{ marginTop: '2em', opacity: 0.5, textAlign: 'center', fontSize: '0.85em' }}>
-        <p>Lead Life • Like Satoshi</p>
+        <p>Lead Life Like Satoshi</p>
       </footer>
     </div>
   )
 }
 
 export default App
-
