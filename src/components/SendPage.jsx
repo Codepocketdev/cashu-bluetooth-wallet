@@ -9,7 +9,6 @@ import {
   getNostrProfile
 } from '../utils/nostr.js'
 
-// Lightning Address utilities
 function isLightningAddress(str) {
   if (!str || typeof str !== 'string') return false
   const parts = str.trim().split('@')
@@ -64,7 +63,6 @@ async function getInvoiceFromLightningAddress(address, amountSats) {
   return invoiceData.pr
 }
 
-// Nostr Send Component
 function SendViaNostr({
   wallet,
   mintUrl,
@@ -177,7 +175,7 @@ function SendViaNostr({
   if (!isConnected) {
     return (
       <div className="card">
-        <h3>🟣 Send via Nostr</h3>
+        <h3>Send via Nostr</h3>
         <div style={{
           padding: '1.5em',
           background: 'rgba(255, 140, 0, 0.1)',
@@ -203,7 +201,7 @@ function SendViaNostr({
 
   return (
     <div className="card">
-      <h3>🟣 Send via Nostr DM</h3>
+      <h3>Send via Nostr DM</h3>
       <p style={{ marginBottom: '1em', fontSize: '0.9em' }}>
         Send ecash tokens via encrypted Nostr DM
       </p>
@@ -212,9 +210,72 @@ function SendViaNostr({
         <label style={{ display: 'block', marginBottom: '0.5em', fontSize: '0.9em' }}>
           Amount (sats):
         </label>
+        
+        {/* PRESET BUTTONS FOR NOSTR */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '0.5em',
+          marginBottom: '0.5em'
+        }}>
+          {[10, 50, 100, 500].map(amount => (
+            <button
+              key={amount}
+              onClick={() => setSendAmount(amount.toString())}
+              style={{
+                padding: '0.6em 0.4em',
+                background: sendAmount === amount.toString() 
+                  ? 'rgba(139, 92, 246, 0.3)' 
+                  : 'rgba(139, 92, 246, 0.1)',
+                border: sendAmount === amount.toString()
+                  ? '2px solid #8B5CF6'
+                  : '1px solid rgba(139, 92, 246, 0.3)',
+                borderRadius: '8px',
+                color: '#8B5CF6',
+                fontSize: '0.85em',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {amount}
+            </button>
+          ))}
+        </div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '0.5em',
+          marginBottom: '0.8em'
+        }}>
+          {[1000, 2000, 5000, 10000].map(amount => (
+            <button
+              key={amount}
+              onClick={() => setSendAmount(amount.toString())}
+              style={{
+                padding: '0.6em 0.4em',
+                background: sendAmount === amount.toString() 
+                  ? 'rgba(139, 92, 246, 0.3)' 
+                  : 'rgba(139, 92, 246, 0.1)',
+                border: sendAmount === amount.toString()
+                  ? '2px solid #8B5CF6'
+                  : '1px solid rgba(139, 92, 246, 0.3)',
+                borderRadius: '8px',
+                color: '#8B5CF6',
+                fontSize: '0.85em',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              {amount >= 1000 ? `${amount/1000}K` : amount}
+            </button>
+          ))}
+        </div>
+        
         <input
           type="number"
-          placeholder="Amount in sats"
+          placeholder="Or type custom amount"
           value={sendAmount}
           onChange={(e) => setSendAmount(e.target.value)}
         />
@@ -277,7 +338,6 @@ function SendViaNostr({
   )
 }
 
-// Lightning Send Component
 function SendViaLightning({
   wallet,
   mintUrl,
@@ -457,7 +517,7 @@ function SendViaLightning({
 
   return (
     <div className="card">
-      <h3>⚡ Send via Lightning</h3>
+      <h3>Send via Lightning</h3>
 
       {!decodedInvoice ? (
         <>
@@ -484,36 +544,123 @@ function SendViaLightning({
                 borderRadius: '8px',
                 fontSize: '0.85em'
               }}>
-                ⚡ Lightning Address detected! Enter amount below.
+                Lightning Address detected! Select amount below.
               </div>
-              <div style={{ position: 'relative', marginBottom: '1em' }}>
+              
+              {/* PRESET BUTTONS FOR LIGHTNING ADDRESS */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '0.5em',
+                marginBottom: '0.5em'
+              }}>
+                {[10, 50, 100, 500].map(amount => (
+                  <button
+                    key={amount}
+                    onClick={() => setLnAddressAmount(amount.toString())}
+                    style={{
+                      padding: '0.6em 0.4em',
+                      background: lnAddressAmount === amount.toString() 
+                        ? 'rgba(255, 140, 0, 0.3)' 
+                        : 'rgba(255, 140, 0, 0.1)',
+                      border: lnAddressAmount === amount.toString()
+                        ? '2px solid #FF8C00'
+                        : '1px solid rgba(255, 140, 0, 0.3)',
+                      borderRadius: '8px',
+                      color: '#FF8C00',
+                      fontSize: '0.85em',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {amount}
+                  </button>
+                ))}
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '0.5em',
+                marginBottom: '0.8em'
+              }}>
+                {[1000, 2000, 5000, 10000].map(amount => (
+                  <button
+                    key={amount}
+                    onClick={() => setLnAddressAmount(amount.toString())}
+                    style={{
+                      padding: '0.6em 0.4em',
+                      background: lnAddressAmount === amount.toString() 
+                        ? 'rgba(255, 140, 0, 0.3)' 
+                        : 'rgba(255, 140, 0, 0.1)',
+                      border: lnAddressAmount === amount.toString()
+                        ? '2px solid #FF8C00'
+                        : '1px solid rgba(255, 140, 0, 0.3)',
+                      borderRadius: '8px',
+                      color: '#FF8C00',
+                      fontSize: '0.85em',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {amount >= 1000 ? `${amount/1000}K` : amount}
+                  </button>
+                ))}
+              </div>
+              
+              <div style={{ position: 'relative', marginBottom: '1em', isolation: 'isolate' }}>
                 <input
                   type="number"
-                  placeholder="Amount in sats"
+                  placeholder="Or type custom amount"
                   value={lnAddressAmount}
                   onChange={(e) => setLnAddressAmount(e.target.value)}
                   style={{
                     marginBottom: 0,
-                    paddingRight: '70px'
+                    paddingRight: '80px',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    position: 'relative',
+                    zIndex: 1
                   }}
                 />
                 <button
-                  onClick={handleSendMax}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    console.log('LIGHTNING MAX CLICKED! Balance:', currentMintBalance)
+                    const maxSendable = currentMintBalance - 2
+                    if (maxSendable > 0) {
+                      setLnAddressAmount(maxSendable.toString())
+                    }
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    const maxSendable = currentMintBalance - 2
+                    if (maxSendable > 0) {
+                      setLnAddressAmount(maxSendable.toString())
+                    }
+                  }}
                   disabled={currentMintBalance === 0}
+                  type="button"
                   style={{
                     position: 'absolute',
-                    right: '10px',
+                    right: '8px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    background: 'rgba(255, 140, 0, 0.2)',
-                    color: '#FF8C00',
-                    border: '1px solid rgba(255, 140, 0, 0.3)',
-                    padding: '0.3em 0.8em',
+                    background: currentMintBalance === 0 ? 'rgba(255, 140, 0, 0.1)' : '#FF8C00',
+                    color: 'white',
+                    border: 'none',
+                    padding: '0.5em 0.8em',
                     borderRadius: '6px',
                     fontSize: '0.85em',
-                    cursor: 'pointer',
+                    cursor: currentMintBalance === 0 ? 'not-allowed' : 'pointer',
                     fontWeight: 'bold',
-                    opacity: currentMintBalance === 0 ? 0.5 : 1
+                    zIndex: 2,
+                    pointerEvents: currentMintBalance === 0 ? 'none' : 'auto',
+                    userSelect: 'none',
+                    WebkitTapHighlightColor: 'transparent'
                   }}
                 >
                   MAX
@@ -610,7 +757,6 @@ function SendViaLightning({
   )
 }
 
-// Main Send Page Component
 export default function SendPage({
   wallet,
   mintUrl,
@@ -620,7 +766,7 @@ export default function SendPage({
   calculateAllBalances,
   addTransaction,
   addPendingToken,
-  scannedData, // NEW: Receive scanned data
+  scannedData,
   error,
   success,
   setError,
@@ -641,19 +787,16 @@ export default function SendPage({
   const [decodedInvoice, setDecodedInvoice] = useState(null)
   const [showMintSelector, setShowMintSelector] = useState(false)
 
-  // NEW: Auto-populate from scanned data
   useEffect(() => {
     if (scannedData) {
       const dataLower = scannedData.toLowerCase()
       
-      // Check if it's a lightning invoice or address
       if (dataLower.startsWith('lnbc') || 
           dataLower.startsWith('lntb') ||
           dataLower.startsWith('lnbcrt') ||
           dataLower.startsWith('ln') ||
           (scannedData.includes('@') && scannedData.includes('.'))) {
         
-        // Auto-select lightning method and populate invoice
         setSendMethod('lightning')
         setLightningInvoice(scannedData)
       }
@@ -739,8 +882,12 @@ export default function SendPage({
   }
 
   const handleSendMaxEcash = () => {
+    console.log('MAX CLICKED! Balance:', currentMintBalance)
     if (currentMintBalance > 0) {
+      console.log('Setting amount to:', currentMintBalance.toString())
       setSendAmount(currentMintBalance.toString())
+    } else {
+      console.log('Balance is 0, not setting amount')
     }
   }
 
@@ -765,7 +912,6 @@ export default function SendPage({
         </h1>
       </header>
 
-      {/* Mint Selector Card */}
       {allMints && allMints.length > 0 && (
         <div className="card" style={{
           padding: '0.8em',
@@ -857,7 +1003,6 @@ export default function SendPage({
         </div>
       )}
 
-      {/* Balance Card */}
       <div className="card balance-card-small">
         <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#FF8C00' }}>{currentMintBalance} sats</div>
         <div style={{ fontSize: '0.85em', opacity: 0.6 }}>Available Balance</div>
@@ -939,31 +1084,107 @@ export default function SendPage({
           <p style={{ marginBottom: '1em' }}>
             Generate a token to send
           </p>
+          
+          {/* PRESET BUTTONS FOR ECASH */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '0.5em',
+            marginBottom: '0.5em'
+          }}>
+            {[10, 50, 100, 500].map(amount => (
+              <button
+                key={amount}
+                onClick={() => setSendAmount(amount.toString())}
+                style={{
+                  padding: '0.6em 0.4em',
+                  background: sendAmount === amount.toString() 
+                    ? 'rgba(255, 140, 0, 0.3)' 
+                    : 'rgba(255, 140, 0, 0.1)',
+                  border: sendAmount === amount.toString()
+                    ? '2px solid #FF8C00'
+                    : '1px solid rgba(255, 140, 0, 0.3)',
+                  borderRadius: '8px',
+                  color: '#FF8C00',
+                  fontSize: '0.85em',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {amount}
+              </button>
+            ))}
+          </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '0.5em',
+            marginBottom: '1em'
+          }}>
+            {[1000, 2000, 5000, 10000].map(amount => (
+              <button
+                key={amount}
+                onClick={() => setSendAmount(amount.toString())}
+                style={{
+                  padding: '0.6em 0.4em',
+                  background: sendAmount === amount.toString() 
+                    ? 'rgba(255, 140, 0, 0.3)' 
+                    : 'rgba(255, 140, 0, 0.1)',
+                  border: sendAmount === amount.toString()
+                    ? '2px solid #FF8C00'
+                    : '1px solid rgba(255, 140, 0, 0.3)',
+                  borderRadius: '8px',
+                  color: '#FF8C00',
+                  fontSize: '0.85em',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {amount >= 1000 ? `${amount/1000}K` : amount}
+              </button>
+            ))}
+          </div>
+          
           <div style={{ position: 'relative', marginBottom: '1em' }}>
             <input
               type="number"
-              placeholder="Amount in sats"
+              placeholder="Or type custom amount"
               value={sendAmount}
               onChange={(e) => setSendAmount(e.target.value)}
-              style={{ paddingRight: '70px' }}
+              style={{ 
+                paddingRight: '80px',
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
             />
             <button
-              onClick={handleSendMaxEcash}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                console.log('MAX CLICKED! Balance:', currentMintBalance)
+                if (currentMintBalance > 0) {
+                  setSendAmount(currentMintBalance.toString())
+                }
+              }}
               disabled={currentMintBalance === 0}
+              type="button"
               style={{
                 position: 'absolute',
-                right: '10px',
+                right: '8px',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                background: 'rgba(255, 140, 0, 0.2)',
-                color: '#FF8C00',
-                border: '1px solid rgba(255, 140, 0, 0.3)',
-                padding: '0.3em 0.8em',
+                background: currentMintBalance === 0 ? 'rgba(255, 140, 0, 0.1)' : '#FF8C00',
+                color: 'white',
+                border: 'none',
+                padding: '0.5em 0.8em',
                 borderRadius: '6px',
                 fontSize: '0.85em',
-                cursor: 'pointer',
+                cursor: currentMintBalance === 0 ? 'not-allowed' : 'pointer',
                 fontWeight: 'bold',
-                opacity: currentMintBalance === 0 ? 0.5 : 1
+                zIndex: 1000,
+                pointerEvents: currentMintBalance === 0 ? 'none' : 'auto',
+                userSelect: 'none'
               }}
             >
               MAX
@@ -992,7 +1213,7 @@ export default function SendPage({
                 <Copy size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '0.3em' }} /> Copy Token
               </button>
               <p style={{ fontSize: '0.75em', opacity: 0.5, marginTop: '0.5em', textAlign: 'center' }}>
-                💡 Token will auto-clear once recipient claims it
+                Token will auto-clear once recipient claims it
               </p>
             </div>
           )}
@@ -1005,3 +1226,4 @@ export default function SendPage({
     </div>
   )
 }
+
