@@ -519,7 +519,7 @@ function App() {
       </div>
 
       <footer style={{ marginTop: '2em', opacity: 0.5, textAlign: 'center', fontSize: '0.85em' }}>
-        <p>Lead Life Like Satoshi</p>
+        <p>Lead Life ● Like Satoshi</p>
       </footer>
     </div>
   )
