@@ -211,7 +211,6 @@ function SendViaNostr({
           Amount (sats):
         </label>
         
-        {/* PRESET BUTTONS FOR NOSTR */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
@@ -358,6 +357,7 @@ function SendViaLightning({
 }) {
   const [sendingPayment, setSendingPayment] = useState(false)
   const [lnAddressAmount, setLnAddressAmount] = useState('')
+  const [paymentNote, setPaymentNote] = useState('') // NEW: Payment note state
   const isLnAddress = isLightningAddress(lightningInvoice)
 
   const handleDecodeInvoice = async () => {
@@ -472,9 +472,14 @@ function SendViaLightning({
       saveProofs(mintUrl, allRemainingProofs)
       calculateAllBalances()
 
-      const description = decodedInvoice.isLnAddress
+      // NEW: Add note to description
+      let description = decodedInvoice.isLnAddress
         ? `Sent to ${decodedInvoice.lnAddress}`
         : 'Paid Lightning invoice'
+
+      if (paymentNote.trim()) {
+        description += ` - ${paymentNote.trim()}`
+      }
 
       addTransaction('send', decodedInvoice.amount, description, mintUrl)
 
@@ -487,6 +492,7 @@ function SendViaLightning({
         setDecodedInvoice(null)
         setLightningInvoice('')
         setLnAddressAmount('')
+        setPaymentNote('') // NEW: Clear note
       }, 2000)
 
     } catch (err) {
@@ -547,7 +553,6 @@ function SendViaLightning({
                 Lightning Address detected! Select amount below.
               </div>
               
-              {/* PRESET BUTTONS FOR LIGHTNING ADDRESS */}
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(4, 1fr)',
@@ -628,15 +633,6 @@ function SendViaLightning({
                   onMouseDown={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    console.log('LIGHTNING MAX CLICKED! Balance:', currentMintBalance)
-                    const maxSendable = currentMintBalance - 2
-                    if (maxSendable > 0) {
-                      setLnAddressAmount(maxSendable.toString())
-                    }
-                  }}
-                  onTouchStart={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
                     const maxSendable = currentMintBalance - 2
                     if (maxSendable > 0) {
                       setLnAddressAmount(maxSendable.toString())
@@ -659,8 +655,7 @@ function SendViaLightning({
                     fontWeight: 'bold',
                     zIndex: 2,
                     pointerEvents: currentMintBalance === 0 ? 'none' : 'auto',
-                    userSelect: 'none',
-                    WebkitTapHighlightColor: 'transparent'
+                    userSelect: 'none'
                   }}
                 >
                   MAX
@@ -668,6 +663,32 @@ function SendViaLightning({
               </div>
             </>
           )}
+
+          {/* NEW: Payment Note Input */}
+          <div style={{ marginBottom: '1em' }}>
+            <label style={{ 
+              display: 'block',
+              marginBottom: '0.5em', 
+              fontSize: '0.9em',
+              opacity: 0.8
+            }}>
+              Payment Note (optional)
+            </label>
+            <input
+              type="text"
+              placeholder="e.g., Coffee, Dinner, Rent..."
+              value={paymentNote}
+              onChange={(e) => setPaymentNote(e.target.value)}
+              maxLength={50}
+              style={{
+                marginBottom: 0,
+                fontSize: '0.9em'
+              }}
+            />
+            <p style={{ fontSize: '0.7em', opacity: 0.5, marginTop: '0.3em' }}>
+              Helps you track what you spent on
+            </p>
+          </div>
 
           <button
             className="primary-btn"
@@ -711,6 +732,20 @@ function SendViaLightning({
             </div>
           </div>
 
+          {/* NEW: Show note in confirmation */}
+          {paymentNote.trim() && (
+            <div style={{
+              marginBottom: '1em',
+              padding: '0.6em',
+              background: 'rgba(139, 92, 246, 0.1)',
+              borderRadius: '8px',
+              fontSize: '0.85em'
+            }}>
+              <span style={{ opacity: 0.8 }}>Note: </span>
+              <span style={{ fontWeight: 'bold' }}>{paymentNote}</span>
+            </div>
+          )}
+
           <div style={{
             marginBottom: '1em',
             padding: '0.6em',
@@ -737,6 +772,7 @@ function SendViaLightning({
               setDecodedInvoice(null)
               setLightningInvoice('')
               setLnAddressAmount('')
+              setPaymentNote('') // NEW: Clear note on cancel
             }}
             disabled={sendingPayment}
           >
@@ -882,12 +918,8 @@ export default function SendPage({
   }
 
   const handleSendMaxEcash = () => {
-    console.log('MAX CLICKED! Balance:', currentMintBalance)
     if (currentMintBalance > 0) {
-      console.log('Setting amount to:', currentMintBalance.toString())
       setSendAmount(currentMintBalance.toString())
-    } else {
-      console.log('Balance is 0, not setting amount')
     }
   }
 
@@ -1085,7 +1117,6 @@ export default function SendPage({
             Generate a token to send
           </p>
           
-          {/* PRESET BUTTONS FOR ECASH */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
@@ -1162,7 +1193,6 @@ export default function SendPage({
             <button
               onMouseDown={(e) => {
                 e.preventDefault()
-                console.log('MAX CLICKED! Balance:', currentMintBalance)
                 if (currentMintBalance > 0) {
                   setSendAmount(currentMintBalance.toString())
                 }
@@ -1226,4 +1256,3 @@ export default function SendPage({
     </div>
   )
 }
-
