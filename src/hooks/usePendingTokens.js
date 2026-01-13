@@ -7,8 +7,12 @@ export const usePendingTokens = (wallet, bip39Seed, updateTransactionStatus) => 
   const [pendingTokens, setPendingTokens] = useState([])
 
   useEffect(() => {
-    const tokens = loadPendingTokens()
-    setPendingTokens(tokens)
+    // 🔥 FIX: Add async/await
+    const loadTokens = async () => {
+      const tokens = await loadPendingTokens()
+      setPendingTokens(tokens)
+    }
+    loadTokens()
   }, [])
 
   useEffect(() => {
@@ -40,10 +44,11 @@ export const usePendingTokens = (wallet, bip39Seed, updateTransactionStatus) => 
 
             const updated = pendingTokens.filter(t => t.id !== pending.id)
             setPendingTokens(updated)
-            savePendingTokens(updated)
+            // 🔥 FIX: Add await
+            await savePendingTokens(updated)
 
             vibrate([100, 50, 100])
-            
+
             if (window.showSuccess) {
               window.showSuccess(`${pending.amount} sats token was claimed!`)
             }
@@ -58,7 +63,7 @@ export const usePendingTokens = (wallet, bip39Seed, updateTransactionStatus) => 
     return () => clearInterval(interval)
   }, [pendingTokens, wallet, bip39Seed, updateTransactionStatus])
 
-  const addPendingToken = (token, amount, mintUrl, proofs, txId) => {
+  const addPendingToken = async (token, amount, mintUrl, proofs, txId) => {
     const pending = {
       id: Date.now(),
       token,
@@ -70,14 +75,16 @@ export const usePendingTokens = (wallet, bip39Seed, updateTransactionStatus) => 
     }
     const updated = [pending, ...pendingTokens]
     setPendingTokens(updated)
-    savePendingTokens(updated)
+    // 🔥 FIX: Add await
+    await savePendingTokens(updated)
   }
 
-  const removePendingToken = (tokenId) => {
+  const removePendingToken = async (tokenId) => {
     if (confirm('Delete this token? This cannot be undone.')) {
       const updated = pendingTokens.filter(t => t.id !== tokenId)
       setPendingTokens(updated)
-      savePendingTokens(updated)
+      // 🔥 FIX: Add await
+      await savePendingTokens(updated)
     }
   }
 
@@ -95,14 +102,17 @@ export const usePendingTokens = (wallet, bip39Seed, updateTransactionStatus) => 
       const proofs = await targetWallet.receive(pendingToken.token)
 
       if (proofs && proofs.length > 0) {
-        const existingProofs = getProofs(tokenMintUrl)
+        // 🔥 FIX: Add await
+        const existingProofs = await getProofs(tokenMintUrl)
         const allProofs = [...existingProofs, ...proofs]
-        saveProofs(tokenMintUrl, allProofs)
-        calculateAllBalances()
+        // 🔥 FIX: Add await
+        await saveProofs(tokenMintUrl, allProofs)
+        await calculateAllBalances()
 
         const updated = pendingTokens.filter(t => t.id !== pendingToken.id)
         setPendingTokens(updated)
-        savePendingTokens(updated)
+        // 🔥 FIX: Add await
+        await savePendingTokens(updated)
 
         vibrate([200])
 
@@ -114,7 +124,8 @@ export const usePendingTokens = (wallet, bip39Seed, updateTransactionStatus) => 
         setError('Token already claimed by recipient')
         const updated = pendingTokens.filter(t => t.id !== pendingToken.id)
         setPendingTokens(updated)
-        savePendingTokens(updated)
+        // 🔥 FIX: Add await
+        await savePendingTokens(updated)
       } else {
         setError(`Could not reclaim: ${err.message}`)
       }
@@ -130,3 +141,4 @@ export const usePendingTokens = (wallet, bip39Seed, updateTransactionStatus) => 
     reclaimPendingToken
   }
 }
+
